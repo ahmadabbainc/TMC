@@ -9,7 +9,7 @@ TMC turns long-form video into ready-to-publish vertical Shorts.
 - Dark and light themes.
 
 ## Stack
-Next.js App Router, React, TypeScript, Tailwind CSS and Lucide. The frontend is designed to connect to a separate Python/FFmpeg worker for long-running rendering.
+Next.js App Router, React, TypeScript, Tailwind CSS and Lucide. The frontend connects to a separate Python API and background worker for long-running video processing. The initial FastAPI service scaffold lives in `backend/`.
 
 ## Run locally
 ```bash
@@ -19,6 +19,6 @@ npm run dev
 Open http://localhost:3000.
 
 ## Status
-This starter commit establishes the original TMC frontend and interactive local video selection. AI analysis, script writing, voice generation, uploads, storage and FFmpeg rendering are not connected yet. Long-running rendering belongs in a worker service, not a Vercel request.
+The frontend foundation and initial FastAPI service scaffold are in place. AI analysis, script writing, voice generation, durable uploads, storage and FFmpeg rendering are not connected yet. See [backend/README.md](backend/README.md) for the API status and local setup. Long-running rendering belongs in a worker service, not a Vercel request.
 
 Only upload footage you own or are licensed to use.
