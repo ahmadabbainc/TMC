@@ -29,23 +29,22 @@ def request_json(method: str, path: str, payload: dict | None = None):
 
 def main() -> None:
     cutoff = datetime.now(timezone.utc) - timedelta(hours=72)
-    files = request_json("POST", f"/storage/v1/object/list/{BUCKET}", {
-        "prefix": "",
-        "limit": 1000,
-        "offset": 0,
-        "sortBy": {"column": "created_at", "order": "asc"},
-    }) or []
     expired = []
-    for item in files:
-        key = item.get("name", "")
-        if not (key.startswith("uploads/") or key.startswith("outputs/")):
-            continue
-        created = item.get("created_at") or item.get("updated_at")
-        if not created:
-            continue
-        timestamp = datetime.fromisoformat(created.replace("Z", "+00:00"))
-        if timestamp < cutoff:
-            expired.append(key)
+    for prefix in ("uploads/", "outputs/"):
+        files = request_json("POST", f"/storage/v1/object/list/{BUCKET}", {
+            "prefix": prefix,
+            "limit": 1000,
+            "offset": 0,
+            "sortBy": {"column": "created_at", "order": "asc"},
+        }) or []
+        for item in files:
+            name = item.get("name", "")
+            created = item.get("created_at") or item.get("updated_at")
+            if not name or not created:
+                continue
+            timestamp = datetime.fromisoformat(created.replace("Z", "+00:00"))
+            if timestamp < cutoff:
+                expired.append(f"{prefix}{name}")
     if expired:
         request_json("DELETE", f"/storage/v1/object/{BUCKET}", {"prefixes": expired})
     jobs_cutoff = urllib.parse.quote((datetime.now(timezone.utc) - timedelta(days=7)).isoformat(), safe=":")
