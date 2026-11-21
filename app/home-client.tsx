@@ -88,10 +88,11 @@ export default function HomeClient() {
       const upload = await uploadResponse.json();
       if (!uploadResponse.ok) throw new Error(upload.error || upload.detail || "Could not prepare the secure upload.");
 
-      const form = new FormData();
-      Object.entries(upload.fields as Record<string, string>).forEach(([key, value]) => form.append(key, value));
-      form.append("file", file);
-      const storageResponse = await fetch(upload.upload_url, { method: "POST", body: form });
+      const storageResponse = await fetch(upload.upload_url, {
+        method: upload.upload_method || "PUT",
+        headers: upload.upload_headers || { "Content-Type": file.type },
+        body: file,
+      });
       if (!storageResponse.ok) throw new Error("The video upload failed. Please try again.");
 
       const jobResponse = await fetch("/api/jobs", {
