@@ -106,7 +106,7 @@ Deno.serve(async (request: Request) => {
       since.setUTCHours(0, 0, 0, 0);
       const [{ count: ipCount }, { count: globalCount }] = await Promise.all([
         supabase.from("tmc_jobs").select("id", { count: "exact", head: true })
-          .eq("client_ip", ip).gte("created_at", since.toISOString()),
+          .eq("client_ip", ip).neq("status", "uploading").neq("status", "uploading").gte("created_at", since.toISOString()),
         supabase.from("tmc_jobs").select("id", { count: "exact", head: true })
           .gte("created_at", since.toISOString()),
       ]);
