@@ -35,7 +35,8 @@ class UploadRequest(BaseModel):
 
 class UploadResponse(BaseModel):
     upload_url: str
-    fields: dict[str, str]
+    upload_headers: dict[str, str]
+    upload_method: str
     object_key: str
     expires_in: int
     max_upload_bytes: int
