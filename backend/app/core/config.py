@@ -9,6 +9,15 @@ class Settings(BaseSettings):
     app_host: str = "0.0.0.0"
     app_port: int = 8000
     cors_origins: str = "http://localhost:3000"
+    api_token: str = ""
+    redis_url: str = ""
+    storage_endpoint: str = ""
+    storage_region: str = "auto"
+    storage_bucket: str = ""
+    storage_access_key: str = ""
+    storage_secret_key: str = ""
+    max_upload_bytes: int = 2_000_000_000
+    upload_url_ttl_seconds: int = 600
 
     model_config = SettingsConfigDict(
         env_file=".env",
