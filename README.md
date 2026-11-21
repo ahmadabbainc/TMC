@@ -2,98 +2,98 @@
 
 TMC is a standalone AI Shorts Factory, developed independently from Energy Studio.
 
-## The $0 deployment architecture
+## The zero-dollar deployment plan
 
-TMC is being configured to run without a paid always-on server:
+The application is being configured to run on free tiers only:
 
 - **Cloudflare Pages** hosts the static Next.js website.
-- **Cloudflare Workers Free** provides the small upload/job API.
-- **Cloudflare R2** stores uploaded videos and finished Shorts within its free allowance.
-- **GitHub Actions** starts an on-demand Linux runner to render each video. Standard GitHub-hosted runners are free for public repositories.
-- **Gemini API free tier** selects scenes and writes narration when the account/model quota is available.
-- **Edge TTS and FFmpeg** create the voice track, captions and vertical MP4.
+- **Supabase Free** provides the Edge Function API, private video storage and job database.
+- **GitHub Actions** runs FFmpeg video rendering only when a job is submitted. Standard GitHub-hosted runners are free for public repositories.
+- **Gemini API free tier** selects scenes and writes narration when its free quota is available.
+- **Edge TTS and FFmpeg** generate the voice track, captions and vertical MP4.
 
-No Railway, DigitalOcean Droplet, Redis server, or continuously running worker is needed for this deployment path.
+There is no DigitalOcean Droplet, Railway service, Redis server, Cloudflare R2 bucket or always-on video worker.
 
-## Important cost safeguards
+## Free-tier guardrails
 
-- The upload API rejects files larger than 200 MB.
-- The public demo is limited to 2 jobs per IP per day and 5 jobs globally per day.
-- Old job records, rate-limit records and output files are deleted after 72 hours.
-- The GitHub workflow uses the standard `ubuntu-latest` runner on this public repository.
-- Keep Cloudflare on its Free plan. Do not enable paid Workers or other paid add-ons.
-- R2 includes a limited free allowance, not unlimited storage. The 72-hour cleanup and daily job cap help keep usage small. Check the Cloudflare usage dashboard and do not upgrade or add a paid plan.
-- Gemini's free tier has model and rate limits. Do not enable Google Cloud billing or switch the API key to a paid tier. Google states that free-tier content may be used to improve its products; do not upload confidential footage.
+- Uploads are limited to **45 MB** to stay below Supabase Storage's 50 MB free-plan object limit.
+- The public demo allows **2 jobs per IP per day** and **5 jobs globally per day**.
+- Source uploads are deleted after successful rendering.
+- Output videos and abandoned uploads are deleted after 72 hours. Old job records are deleted after 7 days.
+- Supabase Free includes 1 GB file storage, a 500 MB database and 5 GB egress. Free projects may pause after a week of inactivity.
+- GitHub's standard hosted runners are free for public repositories.
+- Gemini's free tier has model and rate limits. Do not enable Google Cloud billing or switch to a paid tier. Google states that free-tier content may be used to improve its products.
 
-Free tiers can change and are quota-limited. No cloud service can promise unlimited usage for $0. If a provider asks for a paid upgrade or payment to continue, stop and tell us before proceeding.
+Free tiers are limited and can change. We will not enable paid plans or add payment methods. If any provider asks for a card, paid upgrade or billing activation, stop and tell us before proceeding.
 
-## Deployment setup
+## 1. Cloudflare Pages — website
 
-### 1. Create the Cloudflare resources
+1. Create or sign in to a Cloudflare account at https://dash.cloudflare.com/.
+2. Open **Workers & Pages → Create → Pages → Connect to Git**.
+3. Select the public repository `ahmadabbainc/TMC`.
+4. Select branch `feat/tmc-backend-foundation` for the first preview deployment.
+5. Use build command `npm install && npm run build`.
+6. Set build output directory to `out`.
+7. Add build environment variable `NEXT_PUBLIC_TMC_API_URL` with the Supabase function URL:
+   `https://YOUR_PROJECT_REF.supabase.co/functions/v1/tmc-api`.
+8. Deploy. Keep Cloudflare on its Free plan. We do not use R2 or any Cloudflare paid add-on.
 
-1. Create or sign in to a Cloudflare account: https://dash.cloudflare.com/
-2. Stay on the Free plan.
-3. Create an R2 bucket named `tmc-videos`.
-4. Create an R2 API token scoped only to that bucket with Object Read and Write permissions. Save its Access Key ID and Secret Access Key privately.
-5. Configure bucket CORS to allow your exact Pages website origin and `PUT` with the `Content-Type` header. Example:
+## 2. Supabase — API, database and video storage
 
-```json
-[
-  {
-    "AllowedOrigins": ["https://tmc.pages.dev"],
-    "AllowedMethods": ["PUT"],
-    "AllowedHeaders": ["Content-Type"],
-    "ExposeHeaders": ["ETag"],
-    "MaxAgeSeconds": 3600
-  }
-]
-```
+1. Create a Supabase account at https://supabase.com/dashboard/.
+2. Create one project on the **Free** plan. If the signup flow asks for a payment method or paid upgrade, stop.
+3. Copy the project reference, project URL, database password and service-role key. Keep the service-role key private.
+4. The migration in `supabase/migrations/` creates the job table and a private `tmc-videos` bucket with a 50 MB object limit.
+5. The Edge Function is in `supabase/functions/tmc-api/`. Its public routes are rate-limited and the private callback is protected by a random secret.
 
-### 2. Create the Cloudflare Worker API
+### Supabase Edge Function secrets
 
-The Worker is configured in `cloudflare/worker/wrangler.toml`. It expects these secrets in the Worker settings:
+Set these in Supabase Dashboard → Edge Functions → Secrets:
 
-- `ACCOUNT_ID`: Cloudflare account ID.
-- `R2_ACCESS_KEY_ID`: R2 API access key.
-- `R2_SECRET_ACCESS_KEY`: R2 API secret.
-- `GITHUB_TOKEN`: fine-grained GitHub token with Actions read/write access to `ahmadabbainc/TMC`.
-- `CALLBACK_SECRET`: a long random secret shared with the GitHub video workflow.
+- `GITHUB_TOKEN`: fine-grained GitHub token with Actions read/write permission for `ahmadabbainc/TMC`.
+- `CALLBACK_SECRET`: long random secret.
+- `APP_ORIGIN`: exact Cloudflare Pages website origin.
+- `GITHUB_OWNER`: `ahmadabbainc`.
+- `GITHUB_REPO`: `TMC`.
+- `GITHUB_WORKFLOW`: `process-video.yml`.
+- `GITHUB_BRANCH`: `feat/tmc-backend-foundation`.
+- `SUPABASE_BUCKET`: `tmc-videos`.
 
-The non-secret `APP_ORIGIN` value in `wrangler.toml` must match the actual Cloudflare Pages URL.
+Supabase provides `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` to Edge Functions automatically.
 
-### 3. Configure GitHub Actions secrets
+## 3. GitHub Actions secrets
 
-In GitHub, open Settings → Secrets and variables → Actions → New repository secret. Add:
+In GitHub → TMC → Settings → Secrets and variables → Actions, add:
 
-- `CLOUDFLARE_API_TOKEN`: Cloudflare API token with permission to deploy Workers.
-- `CLOUDFLARE_ACCOUNT_ID`: Cloudflare account ID.
-- `R2_ENDPOINT`: `https://<ACCOUNT_ID>.r2.cloudflarestorage.com`.
-- `R2_BUCKET`: `tmc-videos`.
-- `R2_ACCESS_KEY_ID` and `R2_SECRET_ACCESS_KEY`: the R2 bucket credentials.
-- `GEMINI_API_KEY`: key created in Google AI Studio using the free tier only.
-- `TMC_STATUS_CALLBACK_URL`: the deployed Worker URL, for example `https://tmc-edge-api.<your-subdomain>.workers.dev`.
-- `TMC_CALLBACK_SECRET`: same random secret configured on the Worker as `CALLBACK_SECRET`.
+For deploying the Supabase function:
 
-The Worker also needs its `GITHUB_TOKEN` secret. Never put any of these secrets in frontend code or a `NEXT_PUBLIC_` variable.
+- `SUPABASE_ACCESS_TOKEN`
+- `SUPABASE_DB_PASSWORD`
+- `SUPABASE_PROJECT_REF`
 
-### 4. Deploy the Worker
+For video processing and cleanup:
 
-After adding the Cloudflare deployment secrets, open the repository's Actions tab and manually run **Deploy TMC Cloudflare API**.
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `GEMINI_API_KEY` (Google AI Studio free tier only)
+- `TMC_STATUS_CALLBACK_URL`: `https://YOUR_PROJECT_REF.supabase.co/functions/v1/tmc-api`
+- `TMC_CALLBACK_SECRET`: the same value used for Supabase `CALLBACK_SECRET`.
 
-Then add the Worker secrets listed above in Cloudflare Dashboard → Workers & Pages → tmc-edge-api → Settings → Variables and Secrets.
+Never put the service-role key, GitHub token, Gemini key or callback secret in frontend code or a `NEXT_PUBLIC_` variable.
 
-### 5. Deploy the website
+## 4. Deploy the Supabase API
 
-1. In Cloudflare Dashboard, open Workers & Pages → Create → Pages → Connect to Git.
-2. Select `ahmadabbainc/TMC` and branch `feat/tmc-backend-foundation` for the first preview deployment.
-3. Set the build command to `npm install && npm run build`.
-4. Set the build output directory to `out`.
-5. Add the build environment variable `NEXT_PUBLIC_TMC_API_URL` with the deployed Worker URL.
-6. Deploy, then update `APP_ORIGIN` in the Worker configuration and R2 CORS to the exact Pages URL.
+After setting the three Supabase deployment secrets in GitHub:
 
-### 6. Test the video pipeline
+1. Open the repository's Actions tab.
+2. Select **Deploy TMC Supabase API**.
+3. Choose **Run workflow** on `feat/tmc-backend-foundation`.
 
-Use a short, non-sensitive video you own. The upload limit is 200 MB. A successful run uploads the video to R2, starts a GitHub Actions job, renders the vertical MP4, stores the result in R2 and returns a temporary download link.
+The workflow links the Supabase project, applies the database migration and deploys the Edge Function.
+
+## 5. Test TMC
+
+Use a non-sensitive video you own that is no larger than 45 MB. TMC uploads it to private Supabase Storage, starts a GitHub Actions job, renders a vertical MP4, saves the output and provides a temporary download link.
 
 ## Local development
 
@@ -104,8 +104,8 @@ npm install
 npm run dev
 ```
 
-The UI expects `NEXT_PUBLIC_TMC_API_URL` to point to a deployed Cloudflare Worker. The legacy FastAPI/Redis worker remains in `backend/` for local experimentation and is not required by the free Cloudflare deployment.
+Set `NEXT_PUBLIC_TMC_API_URL` to the deployed Supabase Edge Function URL. The legacy FastAPI/Redis service remains under `backend/` for local experimentation; it is not required by this free deployment path.
 
 ## Privacy and safety
 
-Only upload footage you own or are licensed to use. The free Gemini API tier may use submitted content to improve Google's products. The demo has no user accounts, so it is not suitable for confidential or sensitive videos.
+Only upload footage you own or are licensed to use. The free Gemini API tier may use submitted content to improve Google's products. The demo does not yet have user accounts, so do not upload confidential or sensitive videos.
