@@ -1,7 +1,8 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const secretKeys = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") || "{}");
+const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || secretKeys.default || Deno.env.get("SUPABASE_SECRET_KEY") || "";
 const APP_ORIGIN = Deno.env.get("APP_ORIGIN") || "https://tmc.pages.dev";
 const CALLBACK_SECRET = Deno.env.get("CALLBACK_SECRET") || "";
 const GITHUB_TOKEN = Deno.env.get("GITHUB_TOKEN") || "";
