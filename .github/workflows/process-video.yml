@@ -8,7 +8,7 @@ on:
         required: true
         type: string
       object_key:
-        description: Uploaded R2 object key
+        description: Uploaded Supabase Storage object key
         required: true
         type: string
       file_name:
@@ -46,11 +46,9 @@ jobs:
       - name: Render uploaded video
         working-directory: backend
         env:
-          STORAGE_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
-          STORAGE_REGION: auto
-          STORAGE_BUCKET: ${{ secrets.R2_BUCKET }}
-          STORAGE_ACCESS_KEY: ${{ secrets.R2_ACCESS_KEY_ID }}
-          STORAGE_SECRET_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_BUCKET: tmc-videos
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_MODEL: gemini-2.5-flash-lite
           TMC_STATUS_CALLBACK_URL: ${{ secrets.TMC_STATUS_CALLBACK_URL }}
