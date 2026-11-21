@@ -56,8 +56,8 @@ export default function HomeClient() {
       setNotice("Please choose an MP4, MOV, WebM or MKV video.");
       return;
     }
-    if (f.size > 200_000_000) {
-      setNotice("Your video must be smaller than 200 MB.");
+    if (f.size > 45_000_000) {
+      setNotice("The free plan allows videos up to 45 MB.");
       return;
     }
     setFile(f);
@@ -104,7 +104,7 @@ export default function HomeClient() {
 
       const jobResponse = await fetch(apiUrl("/api/jobs"), {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ object_key: upload.object_key, file_name: file.name }),
+        body: JSON.stringify({ upload_id: upload.upload_id, object_key: upload.object_key, file_name: file.name }),
       });
       const created = await jobResponse.json();
       if (!jobResponse.ok) throw new Error(created.error || created.detail || "Could not start your Short.");
