@@ -110,6 +110,9 @@ export default {
     const origin = request.headers.get("Origin") || "";
     const headers = corsHeaders(origin, env);
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers });
+    if (origin && origin !== env.APP_ORIGIN && origin !== "http://localhost:3000") {
+      return json({ error: "This origin is not allowed." }, 403, origin, env);
+    }
 
     const url = new URL(request.url);
     try {
@@ -145,6 +148,17 @@ export default {
         if (!/^uploads\/[a-f0-9]{32}\.(mp4|mov|webm|mkv)$/.test(objectKey) || !fileName || fileName.length > 180) {
           return json({ error: "Invalid uploaded video reference." }, 400, origin, env);
         }
+        const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+        const day = new Date().toISOString().slice(0, 10);
+        const rateKey = `limits/${day}/${encodeURIComponent(ip)}.json`;
+        const rateObject = await env.TMC_BUCKET.get(rateKey);
+        const rate = rateObject ? await rateObject.json<{ count: number }>() : { count: 0 };
+        if (rate.count >= 3) {
+          return json({ error: "Free demo limit reached: 3 video jobs per IP per day." }, 429, origin, env);
+        }
+        await env.TMC_BUCKET.put(rateKey, JSON.stringify({ count: rate.count + 1 }), {
+          httpMetadata: { contentType: "application/json" },
+        });
         const id = crypto.randomUUID().replaceAll("-", "");
         const job: JobRecord = {
           id, status: "queued", progress: 0,
