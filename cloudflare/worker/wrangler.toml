@@ -12,4 +12,7 @@ GITHUB_OWNER = "ahmadabbainc"
 GITHUB_REPO = "TMC"
 GITHUB_WORKFLOW = "process-video.yml"
 GITHUB_BRANCH = "feat/tmc-backend-foundation"
-MAX_UPLOAD_BYTES = "500000000"
+MAX_UPLOAD_BYTES = "200000000"
+
+[triggers]
+crons = ["0 3 * * *"]
