@@ -1,12 +1,12 @@
 # TMC API and worker
 
-TMC keeps its API and long-running video worker separate from the Next.js frontend. Video files move directly between the browser and S3-compatible object storage; the API only issues short-lived upload forms and queues work.
+TMC keeps its API and long-running video worker separate from the Next.js frontend. Video files upload directly from the browser to S3-compatible object storage using a short-lived presigned **PUT** URL; the API never receives the video bytes.
 
 ## Implemented
 
 - FastAPI health endpoint: `GET /health`.
 - Bearer-token protection for internal API routes.
-- S3-compatible presigned upload forms with a 2 GB default limit.
+- S3-compatible presigned PUT uploads with a 2 GB application limit.
 - Redis-backed job records and queue.
 - Job status endpoint: `GET /v1/jobs/{job_id}`.
 - Worker that downloads a source video, asks Gemini to select scenes and write narration, generates speech with Edge TTS, creates timed caption cards, renders a vertical MP4 with FFmpeg, and uploads the result.
@@ -19,6 +19,26 @@ TMC keeps its API and long-running video worker separate from the Next.js fronte
 - A long random `TMC_API_TOKEN` for the protected API routes.
 
 Never place `TMC_API_TOKEN` in browser code. The frontend should call a server-side route that holds this secret. Before public launch, add user authentication and per-user authorization; the current token is an internal service credential, not end-user identity.
+
+## Configure browser uploads
+
+For Cloudflare R2, add a bucket CORS policy that permits your exact frontend origin and `PUT` requests. For example:
+
+```json
+[
+  {
+    "AllowedOrigins": ["https://your-tmc-domain.example"],
+    "AllowedMethods": ["PUT"],
+    "AllowedHeaders": ["Content-Type"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
+Replace the example origin with the actual TMC frontend domain. Do not use a wildcard origin for a production app. R2 presigned URLs support PUT, not HTML form POST uploads.
+
+The API validates the declared file size before issuing the URL, and the worker checks the actual stored object size again before downloading it. The presigned PUT itself does not enforce a browser form-style content-length range.
 
 ## Run locally
 
@@ -45,7 +65,7 @@ The API health check is at `http://localhost:8000/health`; interactive API docs 
 ## Upload flow
 
 1. Call `POST /v1/uploads` with `file_name`, `content_type` and `size_bytes`.
-2. Submit the returned `fields` and file as multipart form data to the returned `upload_url`.
+2. Upload the file bytes to the returned `upload_url` using the returned `upload_method` and `upload_headers`.
 3. Call `POST /v1/jobs` with the returned `object_key` and file metadata.
 4. Poll `GET /v1/jobs/{job_id}` until the worker completes or fails the job.
 
