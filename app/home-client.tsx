@@ -87,7 +87,9 @@ export default function HomeClient() {
     setBusy(true);
     setNotice("");
     setJob(null);
+    let stage = "Connecting to TMC";
     try {
+      stage = "Requesting a secure upload";
       const uploadResponse = await fetch(apiUrl("/api/uploads"), {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ file_name: file.name, content_type: file.type, size_bytes: file.size }),
@@ -95,6 +97,7 @@ export default function HomeClient() {
       const upload = await uploadResponse.json();
       if (!uploadResponse.ok) throw new Error(upload.error || upload.detail || "Could not prepare the secure upload.");
 
+      stage = "Uploading your video to secure storage";
       const storageResponse = await fetch(upload.upload_url, {
         method: upload.upload_method || "PUT",
         headers: upload.upload_headers || { "Content-Type": file.type },
@@ -102,6 +105,7 @@ export default function HomeClient() {
       });
       if (!storageResponse.ok) throw new Error("The video upload failed. Please try again.");
 
+      stage = "Starting video processing";
       const jobResponse = await fetch(apiUrl("/api/jobs"), {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ upload_id: upload.upload_id, object_key: upload.object_key, file_name: file.name }),
@@ -111,10 +115,12 @@ export default function HomeClient() {
 
       setJob({ id: created.id, status: created.status, progress: 0, message: "Your video is uploaded. TMC is preparing your Short." });
       setFile(null);
+      stage = "Checking processing status";
       await pollJob(created.id);
     } catch (error) {
       setBusy(false);
-      setNotice(error instanceof Error ? error.message : "Something went wrong. Please try again.");
+      const detail = error instanceof Error ? error.message : "Unknown network error";
+      setNotice(`${stage}: ${detail}`);
     }
   }
 
