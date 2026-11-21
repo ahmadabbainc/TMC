@@ -3,7 +3,8 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const secretKeys = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") || "{}");
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || secretKeys.default || Deno.env.get("SUPABASE_SECRET_KEY") || "";
-const APP_ORIGIN = Deno.env.get("APP_ORIGIN") || "https://tmc.pages.dev";
+const APP_ORIGIN = Deno.env.get("APP_ORIGIN") || "https://tmcs-cyan.vercel.app";
+const ALLOWED_ORIGINS = new Set([APP_ORIGIN, "https://tmcs-cyan.vercel.app", "http://localhost:3000"]);
 const CALLBACK_SECRET = Deno.env.get("CALLBACK_SECRET") || "";
 const GITHUB_TOKEN = Deno.env.get("GITHUB_TOKEN") || "";
 const GITHUB_OWNER = Deno.env.get("GITHUB_OWNER") || "ahmadabbainc";
@@ -24,7 +25,7 @@ const allowedTypes: Record<string, string> = {
 };
 
 function cors(origin: string): HeadersInit {
-  const allowed = origin === APP_ORIGIN || origin === "http://localhost:3000";
+  const allowed = ALLOWED_ORIGINS.has(origin);
   return {
     "Access-Control-Allow-Origin": allowed ? origin : APP_ORIGIN,
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
@@ -74,7 +75,7 @@ async function dispatch(job: { id: string; object_key: string; file_name: string
 Deno.serve(async (request: Request) => {
   const origin = request.headers.get("Origin") || "";
   if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors(origin) });
-  if (origin && origin !== APP_ORIGIN && origin !== "http://localhost:3000") {
+  if (origin && !ALLOWED_ORIGINS.has(origin)) {
     return reply({ error: "This website origin is not allowed." }, 403, origin);
   }
 
