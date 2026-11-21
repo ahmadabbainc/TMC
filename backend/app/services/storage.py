@@ -1,4 +1,5 @@
 from functools import lru_cache
+from pathlib import Path
 from uuid import uuid4
 
 import boto3
@@ -14,8 +15,8 @@ def _client():
         "s3",
         endpoint_url=settings.storage_endpoint or None,
         region_name=settings.storage_region,
-        aws_access_key_id=settings.storage_access_key,
-        aws_secret_access_key=settings.storage_secret_key,
+        aws_access_key_id=settings.storage_access_key or None,
+        aws_secret_access_key=settings.storage_secret_key or None,
         config=Config(signature_version="s3v4"),
     )
 
@@ -44,3 +45,33 @@ def create_video_upload(file_name: str, content_type: str) -> dict[str, object]:
         "expires_in": settings.upload_url_ttl_seconds,
         "max_upload_bytes": settings.max_upload_bytes,
     }
+
+
+def download_object(object_key: str, destination: Path) -> None:
+    settings = get_settings()
+    if not settings.storage_bucket:
+        raise RuntimeError("Object storage is not configured.")
+    _client().download_file(settings.storage_bucket, object_key, str(destination))
+
+
+def upload_object(object_key: str, source: Path) -> None:
+    settings = get_settings()
+    if not settings.storage_bucket:
+        raise RuntimeError("Object storage is not configured.")
+    _client().upload_file(
+        str(source),
+        settings.storage_bucket,
+        object_key,
+        ExtraArgs={"ContentType": "video/mp4"},
+    )
+
+
+def create_download_url(object_key: str) -> str:
+    settings = get_settings()
+    if not settings.storage_bucket:
+        raise RuntimeError("Object storage is not configured.")
+    return _client().generate_presigned_url(
+        "get_object",
+        Params={"Bucket": settings.storage_bucket, "Key": object_key},
+        ExpiresIn=settings.download_url_ttl_seconds,
+    )
