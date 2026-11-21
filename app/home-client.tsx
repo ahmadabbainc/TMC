@@ -8,6 +8,13 @@ import {
   LoaderCircle, AlertCircle, Download,
 } from "lucide-react";
 
+const API_BASE = process.env.NEXT_PUBLIC_TMC_API_URL?.replace(/\/$/, "");
+
+function apiUrl(path: string) {
+  if (!API_BASE) throw new Error("TMC is not connected to its free processing service yet.");
+  return `${API_BASE}${path}`;
+}
+
 type Job = {
   id: string;
   status: "queued" | "analyzing" | "writing" | "rendering" | "completed" | "failed";
@@ -60,7 +67,7 @@ export default function HomeClient() {
 
   async function pollJob(jobId: string) {
     try {
-      const response = await fetch(`/api/jobs/${jobId}`, { cache: "no-store" });
+      const response = await fetch(apiUrl(`/api/jobs/${jobId}`), { cache: "no-store" });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || data.detail || "Could not check processing status.");
       setJob(data);
@@ -81,7 +88,7 @@ export default function HomeClient() {
     setNotice("");
     setJob(null);
     try {
-      const uploadResponse = await fetch("/api/uploads", {
+      const uploadResponse = await fetch(apiUrl("/api/uploads"), {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ file_name: file.name, content_type: file.type, size_bytes: file.size }),
       });
@@ -95,7 +102,7 @@ export default function HomeClient() {
       });
       if (!storageResponse.ok) throw new Error("The video upload failed. Please try again.");
 
-      const jobResponse = await fetch("/api/jobs", {
+      const jobResponse = await fetch(apiUrl("/api/jobs"), {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ object_key: upload.object_key, file_name: file.name }),
       });
