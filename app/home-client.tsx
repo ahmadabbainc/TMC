@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTheme } from "next-themes";
 import {
-  Film, UploadCloud, Sun, Moon, FolderVideo, Settings2, Sparkles,
+  Film, UploadCloud, Sun, Moon, FileVideo, Settings2, Sparkles,
   Clapperboard, ArrowUpRight, Clock3, ShieldCheck, X, CheckCircle2,
   LoaderCircle, AlertCircle, Download,
 } from "lucide-react";
@@ -116,7 +116,7 @@ export default function HomeClient() {
         <div className="brand"><div className="brand-mark">T</div><span className="brand-name">tmc<span style={{ color: "var(--lime)" }}>.</span></span></div>
         <div className="nav-label">Workspace</div>
         <a className="nav-link active" href="#create"><Clapperboard size={17}/><span>Create Short</span></a>
-        <a className="nav-link" href="#projects"><FolderVideo size={17}/><span>Your Projects</span></a>
+        <a className="nav-link" href="#projects"><FileVideo size={17}/><span>Your Projects</span></a>
         <a className="nav-link" href="#settings"><Settings2 size={17}/><span>Settings</span></a>
         <div className="sidebar-note"><strong style={{ color: "var(--text)" }}>Made for the scroll.</strong><br/>Turn your best moments into the next great Short.</div>
       </aside>
@@ -172,7 +172,7 @@ export default function HomeClient() {
               {job.status === "completed" && job.output_url && <a className="download-link" href={job.output_url} target="_blank" rel="noreferrer"><Download size={15}/>Download</a>}
             </div>
           ) : (
-            <div className="empty-projects"><div className="empty-icon"><FolderVideo size={18}/></div><div><strong>Your next Short starts here</strong><p>Your videos and their progress will show up here once you create a project.</p></div></div>
+            <div className="empty-projects"><div className="empty-icon"><FileVideo size={18}/></div><div><strong>Your next Short starts here</strong><p>Your videos and their progress will show up here once you create a project.</p></div></div>
           )}
         </section>
         <section id="settings">
