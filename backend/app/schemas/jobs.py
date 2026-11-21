@@ -1,8 +1,8 @@
-from enum import StrEnum
+from enum import Enum
 from pydantic import BaseModel, Field
 
 
-class JobStatus(StrEnum):
+class JobStatus(str, Enum):
     queued = "queued"
     analyzing = "analyzing"
     writing = "writing"
