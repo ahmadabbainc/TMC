@@ -36,3 +36,19 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: supabase functions deploy tmc-api --no-verify-jwt --yes
+
+      - name: Diagnose Storage browser upload CORS
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        run: |
+          set -eu
+          echo "Checking Supabase Storage preflight for the production website..."
+          curl --silent --show-error --include --max-time 20 --request OPTIONS \
+            "${SUPABASE_URL}/storage/v1/object/upload/sign/tmc-videos/cors-probe.mp4?token=probe" \
+            --header "Origin: https://tmcs-cyan.vercel.app" \
+            --header "Access-Control-Request-Method: PUT" \
+            --header "Access-Control-Request-Headers: content-type" \
+            --output /tmp/storage-preflight.txt
+          cat /tmp/storage-preflight.txt
+          grep -qi "access-control-allow-origin" /tmp/storage-preflight.txt
+          grep -qi "access-control-allow-methods" /tmp/storage-preflight.txt
