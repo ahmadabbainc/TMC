@@ -171,7 +171,7 @@ async def render_short(source: Path, output: Path) -> dict[str, str]:
         output.parent.mkdir(parents=True, exist_ok=True)
         _run([
             "ffmpeg", "-y", "-i", str(silent_video), "-i", str(voice_path),
-            "-vf", f"subtitles={captions}:force_style='FontName=DejaVu Sans,FontSize=18,Outline=2,Shadow=1,MarginV=130'",
+            "-vf", f"tpad=stop_mode=clone:stop_duration=10,subtitles={captions}:force_style='FontName=DejaVu Sans,FontSize=18,Outline=2,Shadow=1,MarginV=130'",
             "-map", "0:v:0", "-map", "1:a:0", "-t", "60",
             "-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
             "-c:a", "aac", "-b:a", "192k", "-pix_fmt", "yuv420p",
