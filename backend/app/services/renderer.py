@@ -55,9 +55,11 @@ def _parse_edit_plan(raw: str, source_duration: float) -> dict:
     normalized = []
     total = 0.0
     for clip in clips:
-        start = max(0.0, float(clip["start"]))
-        end = min(source_duration, float(clip["end"]))
-        if end <= start or end - start < 1.5:
+        start = float(clip["start"])
+        end = float(clip["end"])
+        if start < 0 or end > source_duration or end <= start:
+            raise ValueError("The AI selected a timestamp outside the source video.")
+        if end - start < 1.5:
             continue
         normalized.append({"start": start, "end": end})
         total += end - start
