@@ -1,0 +1,60 @@
+name: TMC video processing
+
+on:
+  workflow_dispatch:
+    inputs:
+      job_id:
+        description: TMC job identifier
+        required: true
+        type: string
+      object_key:
+        description: Uploaded Supabase Storage object key
+        required: true
+        type: string
+      file_name:
+        description: Original video filename
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tmc-video-${{ inputs.job_id }}
+  cancel-in-progress: false
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out TMC
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install FFmpeg and fonts
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg fonts-dejavu-core
+      - name: Install TMC renderer
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Render uploaded video
+        working-directory: backend
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_BUCKET: tmc-videos
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: gemini-2.5-flash-lite
+          TMC_STATUS_CALLBACK_URL: ${{ secrets.TMC_STATUS_CALLBACK_URL }}
+          TMC_CALLBACK_SECRET: ${{ secrets.TMC_CALLBACK_SECRET }}
+        run: |
+          python process_action.py \
+            --job-id "${{ inputs.job_id }}" \
+            --object-key "${{ inputs.object_key }}" \
+            --file-name "${{ inputs.file_name }}"

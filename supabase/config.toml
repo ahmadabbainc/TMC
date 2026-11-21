@@ -1,0 +1,2 @@
+[functions.tmc-api]
+verify_jwt = false

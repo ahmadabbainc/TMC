@@ -1,0 +1,42 @@
+name: TMC frontend checks
+
+on:
+  pull_request:
+    paths:
+      - "app/**"
+      - "lib/**"
+      - "package.json"
+      - "tsconfig.json"
+      - "tailwind.config.*"
+      - "postcss.config.*"
+      - ".github/workflows/frontend-checks.yml"
+  push:
+    branches:
+      - main
+      - "feat/**"
+    paths:
+      - "app/**"
+      - "lib/**"
+      - "package.json"
+      - "tsconfig.json"
+      - "tailwind.config.*"
+      - "postcss.config.*"
+      - ".github/workflows/frontend-checks.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Build Next.js app
+        run: npm run build
