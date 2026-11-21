@@ -56,8 +56,8 @@ export default function HomeClient() {
       setNotice("Please choose an MP4, MOV, WebM or MKV video.");
       return;
     }
-    if (f.size > 2_000_000_000) {
-      setNotice("Your video must be smaller than 2 GB.");
+    if (f.size > 200_000_000) {
+      setNotice("Your video must be smaller than 200 MB.");
       return;
     }
     setFile(f);
