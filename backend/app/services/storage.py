@@ -28,19 +28,19 @@ def create_video_upload(file_name: str, content_type: str) -> dict[str, object]:
 
     extension = file_name.rsplit(".", 1)[-1].lower()
     object_key = f"uploads/{uuid4().hex}.{extension}"
-    response = _client().generate_presigned_post(
-        Bucket=settings.storage_bucket,
-        Key=object_key,
-        Fields={"Content-Type": content_type},
-        Conditions=[
-            {"Content-Type": content_type},
-            ["content-length-range", 1, settings.max_upload_bytes],
-        ],
+    upload_url = _client().generate_presigned_url(
+        "put_object",
+        Params={
+            "Bucket": settings.storage_bucket,
+            "Key": object_key,
+            "ContentType": content_type,
+        },
         ExpiresIn=settings.upload_url_ttl_seconds,
     )
     return {
-        "upload_url": response["url"],
-        "fields": response["fields"],
+        "upload_url": upload_url,
+        "upload_headers": {"Content-Type": content_type},
+        "upload_method": "PUT",
         "object_key": object_key,
         "expires_in": settings.upload_url_ttl_seconds,
         "max_upload_bytes": settings.max_upload_bytes,
@@ -51,6 +51,12 @@ def download_object(object_key: str, destination: Path) -> None:
     settings = get_settings()
     if not settings.storage_bucket:
         raise RuntimeError("Object storage is not configured.")
+
+    metadata = _client().head_object(Bucket=settings.storage_bucket, Key=object_key)
+    actual_size = int(metadata.get("ContentLength", 0))
+    if actual_size <= 0 or actual_size > settings.max_upload_bytes:
+        raise ValueError("Uploaded video is empty or exceeds the configured upload limit.")
+
     _client().download_file(settings.storage_bucket, object_key, str(destination))
 
 
