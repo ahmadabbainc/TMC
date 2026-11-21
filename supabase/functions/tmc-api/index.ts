@@ -78,7 +78,13 @@ Deno.serve(async (request: Request) => {
     return reply({ error: "This website origin is not allowed." }, 403, origin);
   }
 
-  const path = new URL(request.url).pathname.replace(/^\/functions\/v1\/tmc-api/, "") || "/";
+  const pathname = new URL(request.url).pathname;
+  // Supabase's gateway may expose the function path with or without its
+  // public /functions/v1 prefix. Normalize all supported forms to /api/...
+  const apiPathIndex = pathname.indexOf("/api/");
+  const path = apiPathIndex >= 0
+    ? pathname.slice(apiPathIndex)
+    : pathname.replace(/^\/(?:functions\/v1\/)?tmc-api\/?/, "") || "/";
   try {
     if (request.method === "POST" && path === "/api/uploads") {
       const body = await request.json() as { file_name?: string; content_type?: string; size_bytes?: number };
