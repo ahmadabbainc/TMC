@@ -25,7 +25,7 @@ jobs:
         with:
           deno-version: v2.x
       - name: Install Supabase function dependencies
-        run: deno install --config supabase/deno.json
+        run: deno cache --config supabase/deno.json supabase/functions/tmc-api/index.ts
       - name: Type-check Supabase Edge Function
         run: deno check --config supabase/deno.json supabase/functions/tmc-api/index.ts
       - name: Compile Python processing helpers
