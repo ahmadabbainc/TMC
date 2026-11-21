@@ -106,6 +106,19 @@ async function dispatchWorkflow(env: Env, job: JobRecord): Promise<void> {
 }
 
 export default {
+  async scheduled(_event: ScheduledController, env: Env): Promise<void> {
+    const cutoff = Date.now() - 72 * 60 * 60 * 1000;
+    for (const prefix of ["outputs/", "jobs/", "limits/"]) {
+      let cursor: string | undefined;
+      do {
+        const page = await env.TMC_BUCKET.list({ prefix, cursor, limit: 1000 });
+        const expired = page.objects.filter((object) => object.uploaded.getTime() < cutoff).map((object) => object.key);
+        if (expired.length) await env.TMC_BUCKET.delete(expired);
+        cursor = page.truncated ? page.cursor : undefined;
+      } while (cursor);
+    }
+  },
+
   async fetch(request: Request, env: Env): Promise<Response> {
     const origin = request.headers.get("Origin") || "";
     const headers = corsHeaders(origin, env);
@@ -153,9 +166,18 @@ export default {
         const rateKey = `limits/${day}/${encodeURIComponent(ip)}.json`;
         const rateObject = await env.TMC_BUCKET.get(rateKey);
         const rate = rateObject ? await rateObject.json<{ count: number }>() : { count: 0 };
-        if (rate.count >= 3) {
-          return json({ error: "Free demo limit reached: 3 video jobs per IP per day." }, 429, origin, env);
+        if (rate.count >= 2) {
+          return json({ error: "Free demo limit reached: 2 video jobs per IP per day." }, 429, origin, env);
         }
+        const globalKey = `limits/global-${day}.json`;
+        const globalObject = await env.TMC_BUCKET.get(globalKey);
+        const globalRate = globalObject ? await globalObject.json<{ count: number }>() : { count: 0 };
+        if (globalRate.count >= 5) {
+          return json({ error: "TMC has reached its free daily processing limit. Please try again tomorrow." }, 429, origin, env);
+        }
+        await env.TMC_BUCKET.put(globalKey, JSON.stringify({ count: globalRate.count + 1 }), {
+          httpMetadata: { contentType: "application/json" },
+        });
         await env.TMC_BUCKET.put(rateKey, JSON.stringify({ count: rate.count + 1 }), {
           httpMetadata: { contentType: "application/json" },
         });
