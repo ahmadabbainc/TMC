@@ -1,5 +1,5 @@
 import { del, get, put } from "@vercel/blob";
-import { createWriteStream, createReadStream } from "node:fs";
+import { createWriteStream, readFile } from "node:fs/promises";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 
@@ -12,7 +12,7 @@ if (command === "download") {
   if (result.blob.size <= 0 || result.blob.size > 45_000_000) throw new Error("Video exceeds the 45 MB limit.");
   await pipeline(Readable.fromWeb(result.stream), createWriteStream(localPath));
 } else if (command === "upload") {
-  const result = await put(pathname, createReadStream(localPath), {
+  const result = await put(pathname, await readFile(localPath), {
     access: "private", contentType: "video/mp4", addRandomSuffix: false,
   });
   if (!result.pathname) throw new Error("Could not save the finished Short.");
