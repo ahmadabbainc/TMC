@@ -16,7 +16,7 @@ export async function GET(_request: Request, context: { params: { id: string } }
     if (job.status === "completed" && job.output_key) {
       const token = await issueSignedToken({ operations: ["get"] });
       const signed = await presignUrl(token, {
-        pathname: job.output_key, operation: "get", validUntil: Date.now() + 30 * 60 * 1000,
+        pathname: job.output_key, operation: "get", access: "private", validUntil: Date.now() + 30 * 60 * 1000,
       });
       outputUrl = signed.presignedUrl;
     }
