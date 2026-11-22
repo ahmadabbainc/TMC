@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     });
     return NextResponse.json({
       upload_id: uploadId, object_key: objectKey, upload_url: presignedUrl,
-      upload_method: "PUT", upload_headers: { "Content-Type": contentType },
+      upload_method: "PUT",
     });
   } catch (error) {
     console.error("TMC upload URL error", error);
