@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     const objectKey = `uploads/${uploadId}.${extension}`;
     const token = await issueSignedToken({ operations: ["put"] });
     const { presignedUrl } = await presignUrl(token, {
-      pathname: objectKey, operation: "put", validUntil: Date.now() + 15 * 60 * 1000,
+      pathname: objectKey, operation: "put", access: "private", validUntil: Date.now() + 15 * 60 * 1000,
     });
     return NextResponse.json({
       upload_id: uploadId, object_key: objectKey, upload_url: presignedUrl,
