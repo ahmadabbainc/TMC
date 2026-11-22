@@ -1,5 +1,6 @@
 import { del, get, put } from "@vercel/blob";
-import { createWriteStream, readFile } from "node:fs/promises";
+import { createWriteStream } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 
