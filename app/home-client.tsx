@@ -97,7 +97,6 @@ export default function HomeClient() {
       stage = "Uploading your video to secure storage";
       const storageResponse = await fetch(upload.upload_url, {
         method: upload.upload_method || "PUT",
-        headers: upload.upload_headers || { "Content-Type": file.type },
         body: file,
       });
       if (!storageResponse.ok) throw new Error("The video upload failed. Please try again.");
