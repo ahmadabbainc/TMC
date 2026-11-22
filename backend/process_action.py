@@ -18,7 +18,7 @@ def blob(command: str, pathname: str, local_path: str = "", payload: dict | None
     args = ["node", str(HELPER), command, pathname, local_path]
     if payload is not None:
         args.append(json.dumps(payload))
-    subprocess.run(args, check=True, env=os.environ.copy(), capture_output=True, text=True)
+    subprocess.run(args, check=True, env=os.environ.copy())
 
 
 def update_status(job_id: str, status: str, progress: int, message: str, output_key: str | None = None) -> None:
