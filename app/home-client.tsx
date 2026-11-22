@@ -8,11 +8,8 @@ import {
   LoaderCircle, AlertCircle, Download,
 } from "lucide-react";
 
-const API_BASE = process.env.NEXT_PUBLIC_TMC_API_URL?.replace(/\/$/, "");
-
 function apiUrl(path: string) {
-  if (!API_BASE) throw new Error("TMC is not connected to its free processing service yet.");
-  return `${API_BASE}${path}`;
+  return path;
 }
 
 type Job = {
