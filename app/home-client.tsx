@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { upload as uploadBlob } from "@vercel/blob/client";
 import { useTheme } from "next-themes";
 import {
   Film, UploadCloud, Sun, Moon, FileVideo, Settings2, Sparkles,
@@ -8,11 +9,8 @@ import {
   LoaderCircle, AlertCircle, Download,
 } from "lucide-react";
 
-const API_BASE = process.env.NEXT_PUBLIC_TMC_API_URL?.replace(/\/$/, "");
-
 function apiUrl(path: string) {
-  if (!API_BASE) throw new Error("TMC is not connected to its free processing service yet.");
-  return `${API_BASE}${path}`;
+  return path;
 }
 
 type Job = {
@@ -89,26 +87,26 @@ export default function HomeClient() {
     setJob(null);
     let stage = "Connecting to TMC";
     try {
-      stage = "Requesting a secure upload";
-      const uploadResponse = await fetch(apiUrl("/api/uploads"), {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ file_name: file.name, content_type: file.type, size_bytes: file.size }),
-      });
-      const upload = await uploadResponse.json();
-      if (!uploadResponse.ok) throw new Error(upload.error || upload.detail || "Could not prepare the secure upload.");
+      const extensionByType: Record<string, string> = {
+        "video/mp4": "mp4", "video/quicktime": "mov",
+        "video/webm": "webm", "video/x-matroska": "mkv",
+      };
+      const extension = extensionByType[file.type];
+      if (!extension) throw new Error("Please choose a supported video format.");
+      const uploadId = crypto.randomUUID();
+      const objectKey = `uploads/${uploadId}.${extension}`;
 
       stage = "Uploading your video to secure storage";
-      const storageResponse = await fetch(upload.upload_url, {
-        method: upload.upload_method || "PUT",
-        headers: upload.upload_headers || { "Content-Type": file.type },
-        body: file,
+      const blob = await uploadBlob(objectKey, file, {
+        access: "private",
+        handleUploadUrl: apiUrl("/api/uploads"),
+        clientPayload: JSON.stringify({ contentType: file.type, size: file.size }),
       });
-      if (!storageResponse.ok) throw new Error("The video upload failed. Please try again.");
 
       stage = "Starting video processing";
       const jobResponse = await fetch(apiUrl("/api/jobs"), {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ upload_id: upload.upload_id, object_key: upload.object_key, file_name: file.name }),
+        body: JSON.stringify({ upload_id: uploadId, object_key: blob.pathname, file_name: file.name }),
       });
       const created = await jobResponse.json();
       if (!jobResponse.ok) throw new Error(created.error || created.detail || "Could not start your Short.");
