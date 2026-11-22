@@ -1,4 +1,5 @@
 name: TMC video processing
+run-name: TMC video ${{ inputs.job_id }}
 
 on:
   workflow_dispatch:
@@ -8,7 +9,7 @@ on:
         required: true
         type: string
       object_key:
-        description: Uploaded Supabase Storage object key
+        description: Private Vercel Blob input path
         required: true
         type: string
       file_name:
@@ -28,8 +29,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Check out TMC
+      - name: Check out TMC processing branch
         uses: actions/checkout@v4
+        with:
+          ref: feat/remove-supabase-vercel-gemini
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install Blob SDK
+        run: npm install --no-save --no-audit --no-fund @vercel/blob@2.4.0
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -46,13 +55,9 @@ jobs:
       - name: Render uploaded video
         working-directory: backend
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          SUPABASE_BUCKET: tmc-videos
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_MODEL: gemini-2.5-flash-lite
-          TMC_STATUS_CALLBACK_URL: ${{ secrets.TMC_STATUS_CALLBACK_URL }}
-          TMC_CALLBACK_SECRET: ${{ secrets.TMC_CALLBACK_SECRET }}
         run: |
           python process_action.py \
             --job-id "${{ inputs.job_id }}" \
