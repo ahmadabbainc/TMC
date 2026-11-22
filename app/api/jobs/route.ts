@@ -34,7 +34,7 @@ export async function POST(request: Request) {
         Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28", "Content-Type": "application/json",
       },
-      body: JSON.stringify({ ref: "main", inputs: { job_id: id, object_key: objectKey, file_name: fileName.slice(0, 180) } }),
+      body: JSON.stringify({ ref: "feat/remove-supabase-vercel-gemini", inputs: { job_id: id, object_key: objectKey, file_name: fileName.slice(0, 180) } }),
       cache: "no-store",
     });
     if (!dispatch.ok) {
