@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     if (!/^[0-9a-f-]{36}$/i.test(uploadId) || !/^uploads\/[0-9a-f-]{36}\.(mp4|mov|webm|mkv)$/i.test(objectKey) || !objectKey.startsWith(`uploads/${uploadId}.`)) {
       return NextResponse.json({ error: "The upload reference is invalid. Please upload your video again." }, { status: 400 });
     }
-    const uploaded = await head(objectKey, { access: "private" });
+    const uploaded = await head(objectKey);
     if (!uploaded || uploaded.size <= 0 || uploaded.size > 45_000_000) {
       return NextResponse.json({ error: "The uploaded video could not be found or is too large." }, { status: 400 });
     }
